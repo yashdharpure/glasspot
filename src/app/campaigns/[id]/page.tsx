@@ -2,7 +2,9 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 
+import Button from '@/components/button';
 import { audit, campaignStats, decideSpend } from '@/lib/glasspot';
 import { createServiceClient } from '@/lib/supabase/service';
 import { createClient } from '@/lib/supabase/server';
@@ -63,7 +65,7 @@ async function updateApprovalLimit(formData: FormData) {
   );
 
   revalidatePath(`/campaigns/${id}`);
-  redirect(`/campaigns/${id}?tab=needs`);
+  redirect(`/campaigns/${id}?tab=needs&notice=saved`);
 }
 
 async function addNeed(formData: FormData) {
@@ -106,7 +108,7 @@ async function addNeed(formData: FormData) {
   );
 
   revalidatePath(`/campaigns/${id}`);
-  redirect(`/campaigns/${id}?tab=needs`);
+  redirect(`/campaigns/${id}?tab=needs&notice=saved`);
 }
 
 async function updateNeed(formData: FormData) {
@@ -154,7 +156,7 @@ async function updateNeed(formData: FormData) {
   );
 
   revalidatePath(`/campaigns/${id}`);
-  redirect(`/campaigns/${id}?tab=needs`);
+  redirect(`/campaigns/${id}?tab=needs&notice=saved`);
 }
 
 async function deleteNeed(formData: FormData) {
@@ -174,7 +176,7 @@ async function deleteNeed(formData: FormData) {
   }
 
   revalidatePath(`/campaigns/${id}`);
-  redirect(`/campaigns/${id}?tab=needs`);
+  redirect(`/campaigns/${id}?tab=needs&notice=deleted`);
 }
 
 async function addContribution(formData: FormData) {
@@ -218,7 +220,7 @@ async function addContribution(formData: FormData) {
   );
 
   revalidatePath(`/campaigns/${id}`);
-  redirect(`/campaigns/${id}?tab=contributions`);
+  redirect(`/campaigns/${id}?tab=contributions&notice=saved`);
 }
 
 async function updateContribution(formData: FormData) {
@@ -266,7 +268,7 @@ async function updateContribution(formData: FormData) {
   );
 
   revalidatePath(`/campaigns/${id}`);
-  redirect(`/campaigns/${id}?tab=contributions`);
+  redirect(`/campaigns/${id}?tab=contributions&notice=saved`);
 }
 
 async function deleteContribution(formData: FormData) {
@@ -286,7 +288,7 @@ async function deleteContribution(formData: FormData) {
   }
 
   revalidatePath(`/campaigns/${id}`);
-  redirect(`/campaigns/${id}?tab=contributions`);
+  redirect(`/campaigns/${id}?tab=contributions&notice=deleted`);
 }
 
 async function decideHumanSpend(formData: FormData) {
@@ -305,7 +307,7 @@ async function decideHumanSpend(formData: FormData) {
 
   if (spend) {
     revalidatePath(`/campaigns/${id}`);
-    redirect(`/campaigns/${id}?tab=spends`);
+    redirect(`/campaigns/${id}?tab=spends&notice=${decision === 'approve' ? 'approved' : 'rejected'}`);
   }
 }
 
@@ -334,7 +336,7 @@ async function markSpendPaid(formData: FormData) {
   );
 
   revalidatePath(`/campaigns/${id}`);
-  redirect(`/campaigns/${id}?tab=spends`);
+  redirect(`/campaigns/${id}?tab=spends&notice=paid`);
 }
 
 export default async function CampaignEditorPage({
@@ -348,6 +350,14 @@ export default async function CampaignEditorPage({
   const { campaign, service } = await ensureOwnerCampaign(id);
   const paramsMap = (await searchParams) ?? {};
   const activeTab = String(paramsMap.tab ?? 'needs');
+  const notice = String(paramsMap.notice ?? '');
+  const notices: Record<string, string> = {
+    saved: 'Saved.',
+    deleted: 'Deleted.',
+    approved: 'Spend approved.',
+    rejected: 'Spend rejected.',
+    paid: 'Marked as paid (simulated).',
+  };
 
   const [needsResult, contributionsResult, spendsResult, auditResult, stats] = await Promise.all([
     service.from('needs').select('*').eq('campaign_id', id).order('created_at', { ascending: true }),
@@ -394,29 +404,49 @@ export default async function CampaignEditorPage({
   });
 
   return (
-    <main style={{ maxWidth: 1200, margin: '2rem auto', padding: '0 1rem 3rem', color: '#14272E', background: '#EEF3F2' }}>
-      <div style={{ background: '#FFFFFF', border: '1px solid #D5DFDD', borderRadius: 18, padding: '1.5rem', boxShadow: '0 8px 28px rgba(20,39,46,0.04)' }}>
+    <main style={{ maxWidth: 1200, margin: '2rem auto', padding: '0 1rem 3rem', color: 'var(--ink)', background: 'var(--bg)' }}>
+      <div className="view-switch-bar">
+        <nav className="view-switch" aria-label="Campaign views">
+          <Link className="view-switch__link view-switch__link--active" href={`/campaigns/${id}`} aria-current="page">
+            Organizer view
+          </Link>
+          <Link className="view-switch__link" href={`/c/${campaign.slug}`} target="_blank" rel="noreferrer">
+            Public page
+            <svg aria-hidden="true" viewBox="0 0 16 16" width="15" height="15" fill="none" style={{ marginLeft: 5 }}>
+              <path d="M9 2h5v5M14 2 7 9M12 9v4H3V4h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
+        </nav>
+        <span className="private-view-badge">Organizer view: only you can see this</span>
+      </div>
+
+      <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 18, padding: '1.5rem', boxShadow: '0 8px 28px rgba(20,39,46,0.04)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '1.5rem' }}>
           <div>
             <p style={{ margin: 0, color: '#5B6E74', fontSize: 13, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Campaign editor</p>
             <h1 style={{ margin: '0.35rem 0 0', fontSize: '2rem' }}>{campaign.title}</h1>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <a href={`/c/${campaign.slug}`} target="_blank" rel="noreferrer" style={{ color: '#1F6F8B', fontWeight: 600 }}>Open public page</a>
-            <a href="/dashboard" style={{ color: '#1F6F8B', fontWeight: 600 }}>Back to dashboard</a>
+            <Link href="/dashboard" style={{ color: 'var(--blue)', fontWeight: 600 }}>Back to dashboard</Link>
           </div>
         </div>
 
+        {notice && notices[notice] ? (
+          <p role="status" aria-live="polite" style={{ padding: '0.75rem 1rem', borderRadius: 8, background: '#E3EEF1', color: '#14272E' }}>
+            {notices[notice]}
+          </p>
+        ) : null}
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div style={{ background: '#E3EEF1', border: '1px solid #D5DFDD', borderRadius: 14, padding: '1rem' }}>
+          <div style={{ background: 'var(--soft)', border: '1px solid var(--line)', borderRadius: 14, padding: '1rem' }}>
             <div style={{ color: '#5B6E74', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Cash balance</div>
             <div style={{ marginTop: '0.5rem', fontSize: '1.6rem', fontWeight: 700 }}>{currency.format(stats.balance)}</div>
           </div>
-          <div style={{ background: '#FFFFFF', border: '1px solid #D5DFDD', borderRadius: 14, padding: '1rem' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 14, padding: '1rem' }}>
             <div style={{ color: '#5B6E74', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Waiting for approval</div>
             <div style={{ marginTop: '0.5rem', fontSize: '1.6rem', fontWeight: 700 }}>{stats.pendingCount}</div>
           </div>
-          <div style={{ background: '#FFFFFF', border: '1px solid #D5DFDD', borderRadius: 14, padding: '1rem' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 14, padding: '1rem' }}>
             <div style={{ color: '#5B6E74', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Approval limit</div>
             <form action={updateApprovalLimit} style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', alignItems: 'center' }}>
               <input type="hidden" name="campaign_id" value={campaign.id} />
@@ -428,7 +458,7 @@ export default async function CampaignEditorPage({
                 step={100}
                 style={{ width: '140px', padding: '0.6rem 0.7rem', borderRadius: 8, border: '1px solid #D5DFDD' }}
               />
-              <button type="submit" style={{ background: '#1F6F8B', color: '#FFF', border: 'none', borderRadius: 8, padding: '0.65rem 0.9rem', fontWeight: 600 }}>Save</button>
+              <Button type="submit" loadingText="Saving...">Save</Button>
             </form>
           </div>
         </div>
@@ -505,7 +535,7 @@ export default async function CampaignEditorPage({
                 </select>
               </label>
               <div style={{ display: 'flex', alignItems: 'end' }}>
-                <button type="submit" style={{ background: '#1F6F8B', color: '#FFF', border: 'none', borderRadius: 8, padding: '0.75rem 1rem', fontWeight: 700 }}>Add need</button>
+                <Button type="submit" loadingText="Saving...">Add need</Button>
               </div>
             </form>
 
@@ -538,7 +568,7 @@ export default async function CampaignEditorPage({
                             <input type="hidden" name="campaign_id" value={campaign.id} />
                             <input type="hidden" name="id" value={need.id} />
                             <input name="item" defaultValue={need.item} style={{ padding: '0.55rem 0.7rem', borderRadius: 8, border: '1px solid #D5DFDD' }} />
-                            <button type="submit" style={{ background: '#1F6F8B', color: '#FFF', border: 'none', borderRadius: 8, padding: '0.5rem 0.7rem' }}>Save</button>
+                            <Button type="submit" loadingText="Saving...">Save</Button>
                           </form>
                         </td>
                         <td style={{ padding: '0.8rem 0.9rem', borderBottom: '1px solid #D5DFDD' }}>
@@ -573,12 +603,19 @@ export default async function CampaignEditorPage({
                             <input type="hidden" name="campaign_id" value={campaign.id} />
                             <input type="hidden" name="id" value={need.id} />
                             <input type="hidden" name="item" defaultValue={need.item} />
-                            <button type="submit" style={{ background: '#1F6F8B', color: '#FFF', border: 'none', borderRadius: 8, padding: '0.5rem 0.7rem' }}>Save</button>
+                            <Button type="submit" loadingText="Saving...">Save</Button>
                           </form>
                           <form action={deleteNeed} style={{ marginTop: '0.5rem' }}>
                             <input type="hidden" name="campaign_id" value={campaign.id} />
                             <input type="hidden" name="id" value={need.id} />
-                            <button type="submit" style={{ background: '#C4432F', color: '#FFF', border: 'none', borderRadius: 8, padding: '0.5rem 0.7rem' }}>Delete</button>
+                            <Button
+                              type="submit"
+                              variant="danger"
+                              confirmMessage="Delete this need? This cannot be undone."
+                              loadingText="Deleting..."
+                            >
+                              Delete
+                            </Button>
                           </form>
                         </td>
                       </tr>
@@ -627,7 +664,7 @@ export default async function CampaignEditorPage({
                 </select>
               </label>
               <div style={{ display: 'flex', alignItems: 'end' }}>
-                <button type="submit" style={{ background: '#1F6F8B', color: '#FFF', border: 'none', borderRadius: 8, padding: '0.75rem 1rem', fontWeight: 700 }}>Add contribution</button>
+                <Button type="submit" loadingText="Saving...">Add contribution</Button>
               </div>
             </form>
 
@@ -655,7 +692,7 @@ export default async function CampaignEditorPage({
                           <input type="hidden" name="campaign_id" value={campaign.id} />
                           <input type="hidden" name="id" value={contribution.id} />
                           <input name="donor_name" defaultValue={contribution.donor_name} style={{ padding: '0.55rem 0.7rem', borderRadius: 8, border: '1px solid #D5DFDD' }} />
-                          <button type="submit" style={{ background: '#1F6F8B', color: '#FFF', border: 'none', borderRadius: 8, padding: '0.5rem 0.7rem' }}>Save</button>
+                          <Button type="submit" loadingText="Saving...">Save</Button>
                         </form>
                       </td>
                       <td style={{ padding: '0.8rem 0.9rem', borderBottom: '1px solid #D5DFDD' }}>
@@ -687,12 +724,19 @@ export default async function CampaignEditorPage({
                           <input type="hidden" name="campaign_id" value={campaign.id} />
                           <input type="hidden" name="id" value={contribution.id} />
                           <input type="hidden" name="donor_name" defaultValue={contribution.donor_name} />
-                          <button type="submit" style={{ background: '#1F6F8B', color: '#FFF', border: 'none', borderRadius: 8, padding: '0.5rem 0.7rem' }}>Save</button>
+                          <Button type="submit" loadingText="Saving...">Save</Button>
                         </form>
                         <form action={deleteContribution} style={{ marginTop: '0.5rem' }}>
                           <input type="hidden" name="campaign_id" value={campaign.id} />
                           <input type="hidden" name="id" value={contribution.id} />
-                          <button type="submit" style={{ background: '#C4432F', color: '#FFF', border: 'none', borderRadius: 8, padding: '0.5rem 0.7rem' }}>Delete</button>
+                          <Button
+                            type="submit"
+                            variant="danger"
+                            confirmMessage="Delete this contribution? This cannot be undone."
+                            loadingText="Deleting..."
+                          >
+                            Delete
+                          </Button>
                         </form>
                       </td>
                     </tr>
@@ -738,22 +782,29 @@ export default async function CampaignEditorPage({
                                 <input type="hidden" name="campaign_id" value={campaign.id} />
                                 <input type="hidden" name="spend_id" value={spend.id} />
                                 <input type="hidden" name="decision" value="approve" />
-                                <button type="submit" style={{ background: '#2E8B57', color: '#FFF', border: 'none', borderRadius: 8, padding: '0.5rem 0.7rem' }}>Approve</button>
+                                <Button type="submit" variant="success" loadingText="Approving...">Approve</Button>
                               </form>
                               <form action={decideHumanSpend}>
                                 <input type="hidden" name="campaign_id" value={campaign.id} />
                                 <input type="hidden" name="spend_id" value={spend.id} />
                                 <input type="hidden" name="decision" value="reject" />
-                                <button type="submit" style={{ background: '#C4432F', color: '#FFF', border: 'none', borderRadius: 8, padding: '0.5rem 0.7rem' }}>Reject</button>
+                                <Button
+                                  type="submit"
+                                  variant="danger"
+                                  confirmMessage="Reject this spend request?"
+                                  loadingText="Rejecting..."
+                                >
+                                  Reject
+                                </Button>
                               </form>
                             </div>
                           ) : spend.status === 'approved' && !spend.paid_simulated ? (
                             <form action={markSpendPaid}>
                               <input type="hidden" name="campaign_id" value={campaign.id} />
                               <input type="hidden" name="spend_id" value={spend.id} />
-                              <button type="submit" style={{ background: '#1F6F8B', color: '#FFF', border: 'none', borderRadius: 8, padding: '0.5rem 0.7rem' }}>
+                              <Button type="submit" loadingText="Saving...">
                                 Pay via Volopay <span style={{ fontWeight: 700, marginLeft: 6 }}>Simulated</span>
-                              </button>
+                              </Button>
                             </form>
                           ) : (
                             <span style={{ color: '#2E8B57', fontWeight: 700 }}>Paid via Volopay (Simulated)</span>

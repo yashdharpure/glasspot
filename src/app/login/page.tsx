@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import Button from '@/components/button';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -19,20 +20,24 @@ export default function LoginPage() {
     setError('');
 
     const supabase = createClient();
-    const result =
-      mode === 'signin'
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
+    try {
+      const result =
+        mode === 'signin'
+          ? await supabase.auth.signInWithPassword({ email, password })
+          : await supabase.auth.signUp({ email, password });
 
-    if (result.error) {
-      setError(result.error.message);
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+
+      router.push('/dashboard');
+      router.refresh();
+    } catch {
+      setError('Could not connect to Glasspot. Check your connection and try again.');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    router.push('/dashboard');
-    router.refresh();
-    setLoading(false);
   }
 
   return (
@@ -40,34 +45,22 @@ export default function LoginPage() {
       <h1 style={{ marginBottom: '1.5rem' }}>Glasspot login</h1>
 
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
-        <button
+        <Button
           type="button"
+          variant={mode === 'signin' ? 'primary' : 'ghost'}
+          aria-pressed={mode === 'signin'}
           onClick={() => setMode('signin')}
-          style={{
-            padding: '0.6rem 1rem',
-            border: '1px solid #d5dfdd',
-            background: mode === 'signin' ? '#1f6f8b' : '#fff',
-            color: mode === 'signin' ? '#fff' : '#14272e',
-            borderRadius: 8,
-            cursor: 'pointer',
-          }}
         >
           Sign in
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant={mode === 'signup' ? 'primary' : 'ghost'}
+          aria-pressed={mode === 'signup'}
           onClick={() => setMode('signup')}
-          style={{
-            padding: '0.6rem 1rem',
-            border: '1px solid #d5dfdd',
-            background: mode === 'signup' ? '#1f6f8b' : '#fff',
-            color: mode === 'signup' ? '#fff' : '#14272e',
-            borderRadius: 8,
-            cursor: 'pointer',
-          }}
         >
           Sign up
-        </button>
+        </Button>
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem' }}>
@@ -102,20 +95,14 @@ export default function LoginPage() {
           </p>
         ) : null}
 
-        <button
+        <Button
           type="submit"
           disabled={loading}
-          style={{
-            padding: '0.8rem 1rem',
-            borderRadius: 8,
-            border: 'none',
-            background: '#1f6f8b',
-            color: '#fff',
-            cursor: 'pointer',
-          }}
+          loading={loading}
+          loadingText={mode === 'signin' ? 'Signing in...' : 'Creating account...'}
         >
-          {loading ? 'Please wait...' : mode === 'signin' ? 'Sign in' : 'Create account'}
-        </button>
+          {mode === 'signin' ? 'Sign in' : 'Create account'}
+        </Button>
       </form>
     </main>
   );

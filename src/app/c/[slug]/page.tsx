@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 
 import { createServiceClient } from '@/lib/supabase/service';
+import { createClient } from '@/lib/supabase/server';
 
 const currency = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -58,6 +60,11 @@ export default async function PublicCampaignPage({
   }
 
   const { campaign, needs, contributions, spends } = publicCampaign;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const isOwner = user?.id === campaign.owner_id;
 
   const cashReceived = contributions
     .filter((row) => row.type === 'cash' && row.status === 'received')
@@ -68,12 +75,20 @@ export default async function PublicCampaignPage({
     .reduce((sum, row) => sum + Number(row.amount || 0), 0);
 
   return (
-    <main style={{ maxWidth: 1100, margin: '2rem auto', padding: '0 1rem 3rem', background: '#EEF3F2', color: '#14272E' }}>
-      <div style={{ background: '#FFFFFF', border: '1px solid #D5DFDD', borderRadius: 18, padding: '1.5rem', boxShadow: '0 8px 26px rgba(20,39,46,0.04)' }}>
+    <main style={{ maxWidth: 1100, margin: '2rem auto', padding: '0 1rem 3rem', background: 'var(--bg)', color: 'var(--ink)' }}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 18, padding: '1.5rem', boxShadow: '0 8px 26px rgba(20,39,46,0.04)' }}>
+        <div className="public-view-topbar">
+          <span className="public-view-badge">Public page</span>
+          {isOwner ? (
+            <Link href={`/campaigns/${campaign.id}`} style={{ color: 'var(--blue)', fontWeight: 600 }}>
+              Back to organizer view
+            </Link>
+          ) : null}
+        </div>
         <div style={{ marginBottom: '1.5rem' }}>
-          <p style={{ margin: 0, color: '#5B6E74', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 12 }}>Live and public</p>
+          <p style={{ margin: 0, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 12 }}>Live and public</p>
           <h1 style={{ margin: '0.35rem 0 0', fontSize: '2.2rem' }}>{campaign.title}</h1>
-          <p style={{ marginTop: '0.75rem', color: '#5B6E74', lineHeight: 1.6 }}>{campaign.description || 'Campaign details updated live.'}</p>
+          <p style={{ marginTop: '0.75rem', color: 'var(--muted)', lineHeight: 1.6 }}>{campaign.description || 'Campaign details updated live.'}</p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>

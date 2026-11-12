@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
+import Button from '@/components/button';
 import { createServiceClient } from '@/lib/supabase/service';
 import { createClient } from '@/lib/supabase/server';
 
@@ -73,7 +74,7 @@ export default async function SettingsPage({
           <p style={{ margin: 0, color: 'var(--muted)' }}>Signed in as {user.email}</p>
         </div>
         <form action={signOut}>
-          <button type="submit">Sign out</button>
+          <Button type="submit" variant="ghost" loadingText="Signing out...">Sign out</Button>
         </form>
       </header>
 
