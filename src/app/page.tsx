@@ -1,69 +1,74 @@
-import Image from "next/image";
+import { createServiceClient } from '@/lib/supabase/service';
 
-export default function Home() {
+export const dynamic = 'force-dynamic';
+
+async function findDemoCampaign() {
+  const service = createServiceClient();
+  const { data, error } = await service
+    .from('campaigns')
+    .select('title, slug')
+    .eq('title', 'Ward 4 Flood Relief')
+    .eq('is_public', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Could not load the demo campaign link: ${error.message}`);
+  }
+
+  return data;
+}
+
+export default async function Home() {
+  const demoCampaign = await findDemoCampaign();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main style={{ maxWidth: 960, margin: '0 auto', padding: '4rem 1.5rem' }}>
+      <header style={{ maxWidth: 720 }}>
+        <p style={{ margin: 0, color: 'var(--blue)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          Glasspot
+        </p>
+        <h1 style={{ margin: '0.75rem 0', fontSize: 'clamp(2.5rem, 8vw, 4.5rem)', lineHeight: 1.05 }}>
+          Every rupee in plain sight.
+        </h1>
+        <p style={{ color: 'var(--muted)', fontSize: '1.2rem', lineHeight: 1.7 }}>
+          A live, public ledger for community campaigns. Track what was needed, what came in, and where it went.
+        </p>
+        <a
+          href="/login"
+          style={{ display: 'inline-block', marginTop: '0.75rem', padding: '0.8rem 1.2rem', borderRadius: 9, background: 'var(--blue)', color: 'white', textDecoration: 'none', fontWeight: 700 }}
+        >
+          Log in
+        </a>
+        {demoCampaign ? (
+          <p style={{ marginTop: '1rem' }}>
+            <a href={`/c/${demoCampaign.slug}`}>View the {demoCampaign.title} demo ledger</a>
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        ) : null}
+      </header>
+
+      <section aria-labelledby="how-it-works" style={{ marginTop: '3.5rem' }}>
+        <h2 id="how-it-works">How it works</h2>
+        <ol style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', padding: 0, listStyle: 'none' }}>
+          <li style={{ padding: '1.25rem', border: '1px solid var(--line)', borderRadius: 14, background: 'var(--card)' }}>
+            <strong>1. Connect your Claude</strong>
+            <p style={{ color: 'var(--muted)', lineHeight: 1.6 }}>Give your own Claude account the Glasspot connector URL and describe the campaign.</p>
+          </li>
+          <li style={{ padding: '1.25rem', border: '1px solid var(--line)', borderRadius: 14, background: 'var(--card)' }}>
+            <strong>2. Review the ledger</strong>
+            <p style={{ color: 'var(--muted)', lineHeight: 1.6 }}>Glasspot records needs, contributions, and spend requests. You control human approvals and edits.</p>
+          </li>
+          <li style={{ padding: '1.25rem', border: '1px solid var(--line)', borderRadius: 14, background: 'var(--card)' }}>
+            <strong>3. Share the public page</strong>
+            <p style={{ color: 'var(--muted)', lineHeight: 1.6 }}>Donors can follow campaign progress through a live public ledger.</p>
+          </li>
+        </ol>
+      </section>
+
+      <footer style={{ marginTop: '2.5rem', borderTop: '1px solid var(--line)', paddingTop: '1rem', color: 'var(--muted)' }}>
+        Payments and accounting export are simulated.
+      </footer>
+    </main>
   );
 }

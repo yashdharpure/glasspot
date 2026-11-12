@@ -1,26 +1,63 @@
+@import url("https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #eef3f2;
+  --card: #ffffff;
+  --ink: #14272e;
+  --muted: #5b6e74;
+  --line: #d5dfdd;
+  --blue: #1f6f8b;
+  --gold: #f2a900;
+  --green: #2e8b57;
+  --red: #c4432f;
+  --soft: #e3eef1;
+  --background: var(--bg);
+  --foreground: var(--ink);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #0f1c21;
+    --card: #16282f;
+    --ink: #e7f0ee;
+    --muted: #93a8ae;
+    --line: #2a4048;
+    --blue: #5bb5d2;
+    --gold: #f2b73a;
+    --green: #5cbf8a;
+    --red: #e8806e;
+    --soft: #1d3640;
+    --background: var(--bg);
+    --foreground: var(--ink);
   }
 }
 
+html {
+  background: var(--bg);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }
